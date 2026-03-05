@@ -16,51 +16,62 @@ const filterByUser = (userId) => {
   return entries.filter(e => e.userId == userId);
 };
 
-const getEntries = (req, res) => {
+const getEntries = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   res.json(filterByUser(req.user.userId));
 };
 
-const getEntryById = (req, res) => {
+const getEntryById = (req, res, next) => {
   const id = req.params.id;
   const entry = entries.find(e => e.entry_id == id);
-  if (!entry) return res.status(404).json({ error: 'Entry not found' });
+  if (!entry) {
+    const error = new Error('Entry not found');
+    error.status = 404;
+    return next(error);
+  }
 
   if (!req.user) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   if (String(entry.userId) !== String(req.user.userId)) {
-    return res.status(403).json({ error: 'forbidden' });
+    const error = new Error('forbidden');
+    error.status = 403;
+    return next(error);
   }
 
   res.json(entry);
 };
 
-const postEntry = (req, res) => {
+const postEntry = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   const body = req.body;
   if (!body || typeof body !== 'object') {
-    return res.status(400).json({ error: 'Missing request body' });
+    const error = new Error('Missing request body');
+    error.status = 400;
+    return next(error);
   }
 
   const { entry_date, mood, weight, sleep_hours, notes } = body;
-  if (!entry_date || !mood || weight === undefined) {
-    return res.status(400).json({ error: 'entry_date, mood, weight are required' });
-  }
 
   const newEntry = {
     entry_id: nextId(),
     userId: req.user.userId,
     entry_date,
-    mood,
-    weight,
+    mood: mood ?? null,
+    weight: weight ?? null,
     sleep_hours: sleep_hours ?? null,
     notes: notes ?? ''
   };
@@ -69,21 +80,31 @@ const postEntry = (req, res) => {
   res.status(201).json({ message: 'Entry created', entry: newEntry });
 };
 
-const putEntry = (req, res) => {
+const putEntry = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   const id = req.params.id;
   const index = entries.findIndex((e) => e.entry_id == id);
-  if (index === -1) return res.status(404).json({ error: 'Entry not found' });
+  if (index === -1) {
+    const error = new Error('Entry not found');
+    error.status = 404;
+    return next(error);
+  }
 
   if (String(entries[index].userId) !== String(req.user.userId)) {
-    return res.status(403).json({ error: 'forbidden' });
+    const error = new Error('forbidden');
+    error.status = 403;
+    return next(error);
   }
 
   if (!req.body || typeof req.body !== 'object') {
-    return res.status(400).json({ error: 'Missing request body' });
+    const error = new Error('Missing request body');
+    error.status = 400;
+    return next(error);
   }
 
   const { entry_date, mood, weight, sleep_hours, notes } = req.body;
@@ -101,17 +122,25 @@ const putEntry = (req, res) => {
   res.json({ message: `Entry ${id} updated`, entry: updatedEntry });
 };
 
-const deleteEntry = (req, res) => {
+const deleteEntry = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   const id = req.params.id;
   const index = entries.findIndex(e => e.entry_id == id);
-  if (index === -1) return res.status(404).json({ error: 'Entry not found' });
+  if (index === -1) {
+    const error = new Error('Entry not found');
+    error.status = 404;
+    return next(error);
+  }
 
   if (String(entries[index].userId) !== String(req.user.userId)) {
-    return res.status(403).json({ error: 'forbidden' });
+    const error = new Error('forbidden');
+    error.status = 403;
+    return next(error);
   }
 
   const [removed] = entries.splice(index, 1);

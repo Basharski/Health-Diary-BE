@@ -11,7 +11,7 @@ const getItems = (req, res) => {
 };
 
 // 2. UUSI: Hakee vain yhden itemin ID:n perusteella
-const getItemById = (req, res) => {
+const getItemById = (req, res, next) => {
   const id = req.params.id; // Napataan ID url-osoitteesta (esim. /api/items/1)
   
   // Etsitään taulukosta item, jonka id täsmää (käytetään == koska urlin id on merkkijono)
@@ -20,20 +20,20 @@ const getItemById = (req, res) => {
   if (item) {
     res.json(item); // Jos löytyi, palautetaan se
   } else {
-    res.status(404).json({ error: 'Item not found' }); // Jos ei löytynyt, palautetaan 404
+    const error = new Error('Item not found');
+    error.status = 404;
+    return next(error);
   }
 };
 
 // 3. UUSI: Lisää uuden itemin taulukkoon
-const postItem = (req, res) => {
+const postItem = (req, res, next) => {
   const newItem = req.body; // Napataan käyttäjän lähettämä data (esim. { "name": "Orange" })
 
   if (!newItem || typeof newItem !== 'object') {
-    return res.status(400).json({ error: 'Missing request body' });
-  }
-
-  if (!newItem.name) {
-    return res.status(400).json({ error: 'name is required' });
+    const error = new Error('Missing request body');
+    error.status = 400;
+    return next(error);
   }
   
   // Generoidaan uudelle itemille ID (katsotaan mikä on listan viimeinen ID ja lisätään 1)
@@ -50,7 +50,7 @@ const postItem = (req, res) => {
 };
 
 // 4. UUSI: Poistaa oikeasti itemin listalta
-const deleteItem = (req, res) => {
+const deleteItem = (req, res, next) => {
   const id = req.params.id;
   
   // Etsitään, monennellako sijalla (indeksi) poistettava item on taulukossa
@@ -66,23 +66,29 @@ const deleteItem = (req, res) => {
     });
   } else {
     // Jos annettua ID:tä ei löydy listalta
-    res.status(404).json({ error: 'Item not found to delete.' });
+    const error = new Error('Item not found to delete.');
+    error.status = 404;
+    return next(error);
   }
 };
 
 // 5. UUSI: Päivittää itemin (PUT)
-const putItem = (req, res) => {
+const putItem = (req, res, next) => {
   const id = req.params.id;
   const updatedData = req.body;
 
   if (!updatedData || typeof updatedData !== 'object') {
-    return res.status(400).json({ error: 'Missing request body' });
+    const error = new Error('Missing request body');
+    error.status = 400;
+    return next(error);
   }
 
   const index = items.findIndex(item => item.id == id);
 
   if (index === -1) {
-    return res.status(404).json({ error: 'Item not found to update.' });
+    const error = new Error('Item not found to update.');
+    error.status = 404;
+    return next(error);
   }
 
   const updatedItem = {

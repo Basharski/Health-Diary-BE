@@ -39,32 +39,35 @@ const getUsers = (req, res) => {
 };
 
 // 1. Hae tietty käyttäjä ID:llä (GET)
-const getUserById = (req, res) => {
+const getUserById = (req, res, next) => {
   const id = req.params.id;
   const user = users.find(u => u.id == id);
 
   if (user) {
     res.json(toPublicUser(user));
   } else {
-    res.status(404).json({ error: 'User not found' });
+    const error = new Error('User not found');
+    error.status = 404;
+    return next(error);
   }
 };
 
 // 2. Luo uusi käyttäjä (POST)
-const postUser = (req, res) => {
+const postUser = (req, res, next) => {
   const newUser = req.body;
 
   if (!newUser || typeof newUser !== 'object') {
-    return res.status(400).json({ error: 'Missing request body' });
+    const error = new Error('Missing request body');
+    error.status = 400;
+    return next(error);
   }
 
   const { username, password, email } = newUser;
-  if (!username || !password || !email) {
-    return res.status(400).json({ error: 'username, password and email are required' });
-  }
 
   if (findUserByUsername(username)) {
-    return res.status(409).json({ error: 'Username already exists' });
+    const error = new Error('Username already exists');
+    error.status = 409;
+    return next(error);
   }
   
   // Hashataan salasana ennen tallennusta
@@ -87,30 +90,40 @@ const postUser = (req, res) => {
 };
 
 // 2.8 Päivitä käyttäjä (PUT) - vain oma käyttäjä
-const putUser = (req, res) => {
+const putUser = (req, res, next) => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   const id = req.params.id;
   const tokenUserId = String(req.user.userId);
 
   if (String(id) !== tokenUserId) {
-    return res.status(403).json({ error: 'forbidden' });
+    const error = new Error('forbidden');
+    error.status = 403;
+    return next(error);
   }
 
   if (!req.body || typeof req.body !== 'object') {
-    return res.status(400).json({ error: 'Missing request body' });
+    const error = new Error('Missing request body');
+    error.status = 400;
+    return next(error);
   }
 
   const index = users.findIndex((u) => u.id == id);
   if (index === -1) {
-    return res.status(404).json({ error: 'User not found' });
+    const error = new Error('User not found');
+    error.status = 404;
+    return next(error);
   }
 
   const { username, email, password } = req.body;
   if (username && username !== users[index].username && findUserByUsername(username)) {
-    return res.status(409).json({ error: 'Username already exists' });
+    const error = new Error('Username already exists');
+    error.status = 409;
+    return next(error);
   }
 
   const updatedUser = {
@@ -132,12 +145,14 @@ const putUser = (req, res) => {
 };
 
 // 2.5 Poista käyttäjä (DELETE)
-const deleteUser = (req, res) => {
+const deleteUser = (req, res, next) => {
   const id = req.params.id;
   const index = users.findIndex(u => u.id == id);
 
   if (index === -1) {
-    return res.status(404).json({ error: 'User not found to delete.' });
+    const error = new Error('User not found to delete.');
+    error.status = 404;
+    return next(error);
   }
 
   const deletedUser = users.splice(index, 1);

@@ -2,11 +2,13 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { body } from 'express-validator';
 import { getItems, getItemById, postItem, putItem, deleteItem } from './items.js';
 import { getUsers, getUserById, postUser, putUser, deleteUser } from './users.js';
 import { getEntries, getEntryById, postEntry, putEntry, deleteEntry } from './entries.js';
 import { postLogin, getMe } from './auth.js';
 import { authenticateToken } from './middlewares/authentication.js';
+import { errorHandler, notFoundHandler, validationErrorHandler } from './middlewares/error-handler.js';
 
 const app = express();
 const hostname = '127.0.0.1';
@@ -30,10 +32,20 @@ app.get('/api/items', getItems);
 app.get('/api/items/:id', getItemById);
 
 // 2. SEND DATA (POST) - Korvattiin vanha koodi tällä lyhyellä versiolla!
-app.post('/api/items', postItem);
+app.post(
+  '/api/items',
+  body('name', 'name is required').trim().isLength({ min: 1, max: 100 }),
+  validationErrorHandler,
+  postItem
+);
 
 // 3. MODIFY DATA (PUT)
-app.put('/api/items/:id', putItem);
+app.put(
+  '/api/items/:id',
+  body('name').optional().trim().isLength({ min: 1, max: 100 }),
+  validationErrorHandler,
+  putItem
+);
 
 // 4. DELETE DATA
 app.delete('/api/items/:id', deleteItem);
@@ -41,8 +53,28 @@ app.delete('/api/items/:id', deleteItem);
 // --- ENTRIES ROUTES ---
 app.get('/api/entries', authenticateToken, getEntries);
 app.get('/api/entries/:id', authenticateToken, getEntryById);
-app.post('/api/entries', authenticateToken, postEntry);
-app.put('/api/entries/:id', authenticateToken, putEntry);
+app.post(
+  '/api/entries',
+  authenticateToken,
+  body('entry_date', 'entry_date must be a valid date').isISO8601(),
+  body('mood').optional({ nullable: true }).trim().isLength({ max: 50 }),
+  body('weight').optional({ nullable: true }).isFloat({ min: 0, max: 500 }).toFloat(),
+  body('sleep_hours').optional({ nullable: true }).isInt({ min: 0, max: 24 }).toInt(),
+  body('notes').optional({ nullable: true }).trim().isLength({ max: 1000 }).escape(),
+  validationErrorHandler,
+  postEntry
+);
+app.put(
+  '/api/entries/:id',
+  authenticateToken,
+  body('entry_date').optional({ nullable: true }).isISO8601(),
+  body('mood').optional({ nullable: true }).trim().isLength({ max: 50 }),
+  body('weight').optional({ nullable: true }).isFloat({ min: 0, max: 500 }).toFloat(),
+  body('sleep_hours').optional({ nullable: true }).isInt({ min: 0, max: 24 }).toInt(),
+  body('notes').optional({ nullable: true }).trim().isLength({ max: 1000 }).escape(),
+  validationErrorHandler,
+  putEntry
+);
 app.delete('/api/entries/:id', authenticateToken, deleteEntry);
 
 // --- USERS ROUTES ---
@@ -54,26 +86,58 @@ app.get('/api/users', getUsers);
 app.get('/api/users/:id', getUserById);
 
 // Luo uusi käyttäjä
-app.post('/api/users', postUser);
+app.post(
+  '/api/users',
+  body('username', 'username must be 3-20 characters long and alphanumeric')
+    .trim()
+    .isLength({ min: 3, max: 20 })
+    .isAlphanumeric(),
+  body('password', 'minimum password length is 8 characters')
+    .trim()
+    .isLength({ min: 8, max: 128 }),
+  body('email', 'must be a valid email address').trim().isEmail().normalizeEmail(),
+  validationErrorHandler,
+  postUser
+);
 
 // Päivitä käyttäjä (vain oma)
-app.put('/api/users/:id', authenticateToken, putUser);
+app.put(
+  '/api/users/:id',
+  authenticateToken,
+  body('username').optional().trim().isLength({ min: 3, max: 20 }).isAlphanumeric(),
+  body('password').optional().trim().isLength({ min: 8, max: 128 }),
+  body('email').optional().trim().isEmail().normalizeEmail(),
+  validationErrorHandler,
+  putUser
+);
 
 // Poista käyttäjä ID:llä
 app.delete('/api/users/:id', deleteUser);
 
 // --- AUTH ROUTES ---
-app.post('/api/auth/login', postLogin);
+app.post(
+  '/api/auth/login',
+  body('username', 'username is required').trim().notEmpty(),
+  body('password', 'password is required').trim().notEmpty(),
+  validationErrorHandler,
+  postLogin
+);
 app.get('/api/auth/me', authenticateToken, getMe);
 
 // Backwards-compatible login alias
-app.post('/api/users/login', postLogin);
+app.post(
+  '/api/users/login',
+  body('username', 'username is required').trim().notEmpty(),
+  body('password', 'password is required').trim().notEmpty(),
+  validationErrorHandler,
+  postLogin
+);
 
 // 5. 404 RESPONSE - Catch-all for non-existing resources
-app.use((req, res) => {
-  // If the user visits a URL that isn't defined above, they get this.
-  res.status(404).json({ error: '404 - Resource not found' });
-});
+app.use(notFoundHandler);
+
+// Add error handler middleware as the last middleware in the chain
+app.use(errorHandler);
 
 // Start the server
 app.listen(port, hostname, () => {

@@ -6,7 +6,9 @@ const authenticateToken = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Missing token' });
+    const error = new Error('Missing token');
+    error.status = 401;
+    return next(error);
   }
 
   try {
@@ -14,7 +16,9 @@ const authenticateToken = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (err) {
-    res.status(403).json({ error: 'Invalid token' });
+    const error = new Error('Invalid token');
+    error.status = 403;
+    return next(error);
   }
 };
 
