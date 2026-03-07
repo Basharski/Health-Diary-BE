@@ -1,3 +1,4 @@
+// AI-avusteinen: tiedoston sisältöä on tarkennettu Copilotin avulla.
 // src/index.js
 import 'dotenv/config';
 import express from 'express';

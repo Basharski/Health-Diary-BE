@@ -1,3 +1,4 @@
+// AI-avusteinen: tiedoston sisältöä on tarkennettu Copilotin avulla.
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 

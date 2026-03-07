@@ -1,3 +1,4 @@
+// AI-avusteinen: tiedoston sisältöä on tarkennettu Copilotin avulla.
 import { validationResult } from 'express-validator';
 
 const notFoundHandler = (req, res, next) => {

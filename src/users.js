@@ -1,3 +1,4 @@
+// AI-avusteinen: tiedoston sisältöä on tarkennettu Copilotin avulla.
 // src/users.js
 
 import bcrypt from 'bcryptjs';

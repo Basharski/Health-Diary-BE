@@ -1,3 +1,4 @@
+// AI-avusteinen: tiedoston sisältöä on tarkennettu Copilotin avulla.
 // src/entries.js
 
 // Simple in-memory diary entries grouped by userId
